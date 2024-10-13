@@ -43,115 +43,167 @@ Save the Model and Processed Data
 import numpy as np
 import pandas as pd
 import os
-import seaborn as sns
 import missingno
+import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import LabelEncoder, StandardScaler
+from sklearn.preprocessing import OneHotEncoder, MinMaxScaler, StandardScaler, LabelEncoder
+from pandas.plotting import scatter_matrix
 from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error, mean_absolute_percentage_error
-```
 
-# Read Datasets
-```
-yield_data = pd.read_csv('yield.csv')
-temp_data = pd.read_csv('temp.csv')
-rainfall_data = pd.read_csv('rainfall.csv')
-pesticides_data = pd.read_csv('pesticides.csv')
-```
-# Data Cleaning and Preprocessing
-```
+# Ensure plots display inline in Jupyter notebooks
+%matplotlib inline  
+
+# List files in the directory (if using Kaggle environment)
+for dirname, _, filenames in os.walk('/kaggle/input'):
+    for filename in filenames:
+        print(os.path.join(dirname, filename))
+
+# Read CSV files
+yield_data = pd.read_csv('/kaggle/input/crop-yield-prediction-dataset/yield.csv')
+temp_data = pd.read_csv('/kaggle/input/crop-yield-prediction-dataset/temp.csv')
+rainfall_data = pd.read_csv('/kaggle/input/crop-yield-prediction-dataset/rainfall.csv')
+pesticides_data = pd.read_csv('/kaggle/input/crop-yield-prediction-dataset/pesticides.csv')
+yield_df = pd.read_csv('/kaggle/input/crop-yield-prediction-dataset/yield_df.csv')
+
+# Keep only needed columns in yield_data
 yield_data = yield_data[['Area', 'Item', 'Year', 'Value']]
-temp_data.rename(columns={'year': 'Year', 'country': 'Area'}, inplace=True)
+yield_data.head(1)
+
+# Match column titles with yield_data
+temp_data.rename(columns={'year': 'Year', 'country': "Area"}, inplace=True)
+temp_data.head(1)
+
+# Keep all rainfall_data
+rainfall_data.head(1)
+
+# Keep only needed columns in pesticides_data
 pesticides_data = pesticides_data[['Area', 'Year', 'Value']]
-yield_data = yield_data[(yield_data['Item'] == "Rice, paddy") & (yield_data['Year'] >= 1961)]
-```
-# Merge Datasets
-```
+pesticides_data.head(1)
+
+# Filter data
+temp_data = temp_data[temp_data.Year >= 1961]
+yield_data = yield_data[yield_data.Item == "Rice, paddy"]
+
+# Merge datasets
 yield_final = pd.merge(yield_data, temp_data, on=['Year', 'Area'])
-yield_final = pd.merge(yield_final, pesticides_data, on=['Year', 'Area'], suffixes=('_yield', '_pesticide'))
+yield_final = pd.merge(yield_final, pesticides_data, on=['Year', 'Area'])
+yield_final.rename(columns={'Value_x': "Yield_Value", 'Value_y': 'Pesticides_Value'}, inplace=True)
 rainfall_data.rename(columns={' Area': 'Area'}, inplace=True)
 yield_final = pd.merge(yield_final, rainfall_data, on=['Year', 'Area'])
-```
-# Handle Missing Values and Convert Data Types
-```
-yield_final['average_rain'] = pd.to_numeric(yield_final['average_rain_fall_mm_per_year'], errors='coerce')
-yield_final.dropna(inplace=True)
-```
-# Feature Engineering
-```
-yield_final['Pesticides_log'] = np.log1p(yield_final['Value_pesticide'])  # Log transform to avoid -inf
+yield_final.rename(columns={'average_rain_fall_mm_per_year': 'average_rain'}, inplace=True)
+yield_final["average_rain"] = pd.to_numeric(yield_final["average_rain"], errors='coerce')  # Replace non-numbers with NaN
+
+# Visualize missing data
+missingno.bar(yield_final, figsize=(5, 3))
+missingno.matrix(yield_final, figsize=(5, 3))
+
+# Drop rows with NaN values and keep relevant columns
+yield_final = yield_final.dropna()
+yield_final = yield_final[['Area', 'Item', 'Year', "avg_temp", "Pesticides_Value", "average_rain", "Yield_Value"]]
+yield_final.info()
+
+# Visualize missing data again
+missingno.bar(yield_final, figsize=(5, 3))
+missingno.matrix(yield_final, figsize=(5, 3))
+yield_final.describe()
+
+# Plot histograms
+yield_final.hist(bins=25, figsize=(20, 15))
+
+# Log transformation and feature engineering
+yield_final['Pesticides_log'] = np.log(yield_final['Pesticides_Value'])
+yield_final['Pesticides_log'].hist(bins=25, figsize=(5, 3))
+
 yield_final['rain_temp'] = yield_final['avg_temp'] * yield_final['average_rain']
-```
-# Encode Categorical Variables
-```
+yield_final['Pesticides_rain'] = np.log(yield_final['Pesticides_Value'] / yield_final['average_rain'])
+yield_final['Pesticides_temp'] = np.log(yield_final['Pesticides_Value'] / yield_final['avg_temp'])
+yield_final['Pesticides_temp_rain'] = (yield_final['Pesticides_temp'] / yield_final['Pesticides_rain'])
+yield_final['rain_log'] = np.log(yield_final['avg_temp'])
+yield_final['temp_rainlog'] = yield_final['avg_temp'] / yield_final['rain_log']
+
+# Calculate correlation
+num_cols = ['avg_temp', 'Pesticides_Value', 'average_rain', 'rain_temp', 'Pesticides_rain', 
+            'Pesticides_temp', 'Pesticides_temp_rain', 'Pesticides_log', 'rain_log', 
+            'temp_rainlog', 'Yield_Value']
+corr_matrix = yield_final[num_cols].corr()
+corr_matrix["Yield_Value"].sort_values(ascending=False)
+
+# Data correlation visualization
 datacorr = yield_final.copy()
-for column in datacorr.select_dtypes(include=['object']).columns:
-    datacorr[column] = LabelEncoder().fit_transform(datacorr[column])
-```
-# Visualize Data
-```
-sns.heatmap(datacorr.corr(), cmap='PuOr', annot=True, fmt=".2f", linewidths=0.5)
+categorical_columns = datacorr.select_dtypes(include=['object']).columns.tolist()
+label_encoder = LabelEncoder()
+for column in categorical_columns:
+    datacorr[column] = label_encoder.fit_transform(datacorr[column])
+
+sns.heatmap(datacorr.corr(), cmap='PuOr')
+scatter_matrix(yield_final[num_cols], figsize=(12, 8))
 plt.show()
-```
-# Create Categories for Yield Value
-```
-datacorr['Yield_Value_Cat'] = pd.cut(
-    datacorr['Value_yield'], bins=[0, 32500, 50000, 75000, 90000, np.inf], labels=[1, 2, 3, 4, 5]
-)
-```
 
-# Train-Test Split with Stratified Sampling
-```
-X = datacorr.drop(['Value_yield', 'Yield_Value_Cat'], axis=1)
-y = datacorr['Value_yield']
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, stratify=datacorr['Yield_Value_Cat'], random_state=1812
-)
-```
+# Yield value categorization
+datacorr['Yield_Value_Cat'] = pd.cut(datacorr['Yield_Value'],
+                                      bins=[0., 32500, 50000, 75000, 90000, np.inf],
+                                      labels=[1, 2, 3, 4, 5])
+datacorr['Yield_Value_Cat'].value_counts().sort_index().plot.bar(rot=0, grid=True)
+plt.xlabel("Yield_Value_Cat")
+plt.ylabel("Number of districts")
+plt.show()
 
-# Feature Scaling
-```
-scaler = StandardScaler()
-X_train_sc = scaler.fit_transform(X_train)
-X_test_sc = scaler.transform(X_test)
-```
-# Initialize Models
-```
+# Train-test split with stratification
+strat_train_set, strat_test_set = train_test_split(
+    datacorr, test_size=0.1, stratify=datacorr["Yield_Value_Cat"], random_state=1812)
+
+# Check percentage distribution
+strat_test_set["Yield_Value_Cat"].value_counts() / len(strat_test_set)
+datacorr["Yield_Value_Cat"].value_counts() / len(datacorr)
+
+# Prepare data for modeling
+X = datacorr.drop("Yield_Value", axis=1)
+Y = datacorr["Yield_Value"].copy()
+X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.2, stratify=datacorr["Yield_Value_Cat"], random_state=1812)
+
+# Scaling features
+std_scaler = StandardScaler()
+X_train_sc = std_scaler.fit_transform(X_train)
+X_test_sc = std_scaler.transform(X_test)
+
+# Model training and evaluation
+results = []
 models = [
     ('Linear Regression', LinearRegression()),
     ('Decision Tree', DecisionTreeRegressor(random_state=1812)),
     ('Random Forest', RandomForestRegressor(random_state=1812))
 ]
-```
 
-# Train and Evaluate Models
-````
 for name, model in models:
     model.fit(X_train_sc, y_train)
     y_pred = model.predict(X_test_sc)
-`````
-# Metrics Calculation
-`
-    mse = mean_squared_error(y_test, y_pred)
-    r2 = r2_score(y_test, y_pred)
-    mae = mean_absolute_error(y_test, y_pred)
-    mape = mean_absolute_percentage_error(y_test, y_pred)
     
-    print(f'{name} - MSE: {mse:.2f}, R²: {r2:.2f}, MAE: {mae:.2f}, MAPE: {mape:.2f}%')
-    `
-# Scatter Plot of Actual vs Predicted
-``
+    # Metrics evaluation
+    MSE = mean_squared_error(y_test, y_pred)
+    R2_score = r2_score(y_test, y_pred)
+    
+    print(f'The mean_squared_error of the {name} Model is {MSE:.2f}')
+    print(f'The r2_score of the {name} Model is {R2_score:.2f}')
+    
+    # Training and testing accuracy
+    acc_train = model.score(X_train_sc, y_train) * 100
+    acc_test = model.score(X_test_sc, y_test) * 100
+    print(f'The accuracy of the {name} Model Train is {acc_train:.2f}')
+    print(f'The accuracy of the {name} Model Test is {acc_test:.2f}')
+    
+    # Scatter plot for predictions vs actual values
     plt.scatter(y_test, y_pred, s=10, color='#3c7b9b')
-    plt.plot([min(y_test), max(y_test)], [min(y_test), max(y_test)], color='green', linewidth=2)
     plt.xlabel('Actual Values')
     plt.ylabel('Predicted Values')
     plt.title(f'{name} Evaluation')
+    plt.plot([min(y_test), max(y_test)], [min(y_test), max(y_test)], color='green', linewidth=4)
     plt.show()
-`
-``
+
+```
 ## OUTPUT:
 
 
