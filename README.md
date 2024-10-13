@@ -37,6 +37,8 @@ Evaluate the Model Performance
 Save the Model and Processed Data
 
 ## PROGRAM:
+## DEVELOPED BY:THENMOZHI P(212221230116)
+## DEVELOPED BY:BALAJI J(212221243001)
 
 # Import Libraries
 ```
@@ -63,11 +65,11 @@ for dirname, _, filenames in os.walk('/kaggle/input'):
         print(os.path.join(dirname, filename))
 
 # Read CSV files
-yield_data = pd.read_csv('/kaggle/input/crop-yield-prediction-dataset/yield.csv')
-temp_data = pd.read_csv('/kaggle/input/crop-yield-prediction-dataset/temp.csv')
-rainfall_data = pd.read_csv('/kaggle/input/crop-yield-prediction-dataset/rainfall.csv')
-pesticides_data = pd.read_csv('/kaggle/input/crop-yield-prediction-dataset/pesticides.csv')
-yield_df = pd.read_csv('/kaggle/input/crop-yield-prediction-dataset/yield_df.csv')
+yield_data = pd.read_csv('yield.csv')
+temp_data = pd.read_csv('temp.csv')
+rainfall_data = pd.read_csv('rainfall.csv')
+pesticides_data = pd.read_csv('pesticides.csv')
+yield_df = pd.read_csv('yield_df.csv')
 
 # Keep only needed columns in yield_data
 yield_data = yield_data[['Area', 'Item', 'Year', 'Value']]
@@ -205,11 +207,46 @@ for name, model in models:
 
 ```
 ## OUTPUT:
+## Missing Data:
+
+![missing data](https://github.com/user-attachments/assets/219bdef2-5cc4-4705-bff4-d9ea86658fa6)
+
+## yield:
+
+![yield](https://github.com/user-attachments/assets/94cc3734-ea67-4c8a-90a4-9e7a020a2e5b)
 
 
+![yield 1](https://github.com/user-attachments/assets/28832958-4f97-4bd4-8008-ee4bff8b9c25)
 
 
+![yield value](https://github.com/user-attachments/assets/bbb38662-af67-4c24-b925-91c108fc1852)
+
+## Pesticide
+
+![pesticides](https://github.com/user-attachments/assets/1264be8d-379b-4f7e-8225-a3a5bbedce5e)
 
 
+## HeatMap
+
+![heat  map](https://github.com/user-attachments/assets/37f13279-2b2e-4918-aeeb-c5bca5f79760)
+
+# Scatter Plot:
+
+![scatter matrix](https://github.com/user-attachments/assets/fce44e76-3cb0-4c4f-becd-76824ab2605d)
+
+## Linear Regression;
+
+![p2](https://github.com/user-attachments/assets/9d8d5013-6313-4d2f-ba2c-38f8c1d42427)
+
+## Decisiom Tree
+
+![p3](https://github.com/user-attachments/assets/5bd611a0-cb29-46c8-8693-a46449b2301d)
+
+## Random Forest
+
+![p4](https://github.com/user-attachments/assets/bd80e913-9e48-4239-9d4e-c07a8b3d6ac1)
+
+## Results:
+Thus AI-powered crop yield prediction using machine learning effectively analyzes environmental factors, resulting in improved accuracy and insights for farmers. This technology enables better decision-making, leading to enhanced productivity and sustainable agricultural practices.
 
 
