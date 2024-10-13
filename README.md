@@ -14,7 +14,8 @@ The process begins with data collection, followed by preprocessing to handle mis
 
 This predictive capability allows farmers to make informed decisions about resource allocation, planting strategies, and crop selection, ultimately improving productivity and sustainability in agriculture. By reducing risks associated with crop failures, AI enhances food security and supports efficient farming practices. The integration of AI in agriculture represents a significant advancement toward data-driven farming solutions.
 
-## STEPS:
+## ALGORITHMS
+
 ## STEP 1:
 Read the Given Data
 
@@ -37,9 +38,10 @@ Evaluate the Model Performance
 Save the Model and Processed Data
 
 ## PROGRAM:
+```
 ## DEVELOPED BY:THENMOZHI P(212221230116)
 ## DEVELOPED BY:BALAJI J(212221243001)
-
+```
 # Import Libraries
 ```
 import numpy as np
